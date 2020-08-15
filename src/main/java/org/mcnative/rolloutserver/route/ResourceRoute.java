@@ -54,6 +54,9 @@ public class ResourceRoute {
 
             VersionInfo versionInfo = profile.getInstallVersion();
 
+            String serverName = context.header("serverName");
+            Javalin.log.info("Minecraft server ("+serverName+") from "+context.req.getRemoteAddr()+" checked latest version of "+resource.getName());
+
             context.result(versionInfo.getName()+";" + versionInfo.getBuild() + ";" + versionInfo.getQualifier());
         });
 
@@ -72,18 +75,21 @@ public class ResourceRoute {
 
             String edition = context.req.getParameter("edition");
 
-            InputStream stream = resource.getResourceData(context.pathParam("buildId",Integer.class).get(),edition);
+            int buildId = context.pathParam("buildId",Integer.class).get();
+            InputStream stream = resource.getResourceData(buildId,edition);
             if(stream == null){
                 context.res.sendError(404);
                 return;
             }
+            String serverName = context.header("serverName");
+            Javalin.log.info("Minecraft server ("+serverName+") from "+context.req.getRemoteAddr()+" downloaded "+resource.getName()+" ["+buildId+"]");
             context.result(stream);
         });
     }
 
     private boolean authenticate(Context context) throws IOException {
-        String serverId =context.header("serverId");
-        String serverSecret =context.header("serverSecret");
+        String serverId = context.header("serverId");
+        String serverSecret = context.header("serverSecret");
 
         if(serverId == null || serverSecret == null){
             context.res.sendError(400);

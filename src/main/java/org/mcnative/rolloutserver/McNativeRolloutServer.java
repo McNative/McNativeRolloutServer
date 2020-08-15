@@ -18,6 +18,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.mcnative.rolloutserver.config.RolloutServerConfig;
 import org.mcnative.rolloutserver.resource.Resource;
 import org.mcnative.rolloutserver.resource.ResourceController;
+import org.mcnative.rolloutserver.resource.ResourceProfile;
 import org.mcnative.rolloutserver.route.ResourceRoute;
 import org.mcnative.rolloutserver.utils.VersionInfoDocumentAdapter;
 
@@ -113,6 +114,17 @@ public class McNativeRolloutServer {
 
         resourceController.setResources(resources != null ? resources : new ArrayList<>());
         authenticator.setCredentials(credentials != null ? credentials : new ArrayList<>());
+
+        if(resources != null){
+            for (Resource resource : resources) {
+                Javalin.log.info("-------------------------");
+                Javalin.log.info(resource.getName()+" ["+resource.getId()+"] ");
+                for (ResourceProfile profile : resource.getProfiles()) {
+                    Javalin.log.info(" -> "+profile.getName()+" "+profile.getInstallVersion().getName());
+                }
+                Javalin.log.info("-------------------------");
+            }
+        }
     }
 
     private static SslContextFactory getSslContextFactory() {
