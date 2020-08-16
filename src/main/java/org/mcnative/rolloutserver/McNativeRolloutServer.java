@@ -21,6 +21,7 @@ import org.mcnative.rolloutserver.resource.ResourceController;
 import org.mcnative.rolloutserver.resource.ResourceProfile;
 import org.mcnative.rolloutserver.route.ResourceRoute;
 import org.mcnative.rolloutserver.utils.VersionInfoDocumentAdapter;
+import org.slf4j.simple.SimpleLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,8 +42,16 @@ public class McNativeRolloutServer {
     private final ServerAuthenticator authenticator;
 
     public McNativeRolloutServer(){
-        loadConfig();
+        Javalin.log.info("");
+        Javalin.log.info("    __  ___       _   __        __   _            ");
+        Javalin.log.info("   /  |/  /_____ / | / /____ _ / /_ (_)_   __ ___ ");
+        Javalin.log.info("  / /|_/ // ___//  |/ // __ `// __// /| | / // _ \\");
+        Javalin.log.info(" / /  / // /__ / /|  // /_/ // /_ / / | |/ //  __/");
+        Javalin.log.info("/_/  /_/ \\___//_/ |_/ \\__,_/ \\__//_/  |___/ \\___/");
+        Javalin.log.info("                                    Rollout Server");
+        Javalin.log.info("");
 
+        loadConfig();
         this.app = Javalin.create(config -> {
             config.showJavalinBanner = false;
             config.enforceSsl = true;
@@ -116,14 +125,14 @@ public class McNativeRolloutServer {
         authenticator.setCredentials(credentials != null ? credentials : new ArrayList<>());
 
         if(resources != null){
+            Javalin.log.info("-------------------------");
             for (Resource resource : resources) {
-                Javalin.log.info("-------------------------");
                 Javalin.log.info(resource.getName()+" ["+resource.getId()+"] ");
                 for (ResourceProfile profile : resource.getProfiles()) {
                     Javalin.log.info(" -> "+profile.getName()+" "+profile.getInstallVersion().getName());
                 }
-                Javalin.log.info("-------------------------");
             }
+            Javalin.log.info("-------------------------");
         }
     }
 
