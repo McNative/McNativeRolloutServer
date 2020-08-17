@@ -11,6 +11,8 @@ final String BRANCH_MASTER = "origin/master"
 String VERSION = "UNDEFINED"
 String BRANCH = "UNDEFINED"
 boolean SKIP = false
+
+String QUALIFIER = "UNDEFINDED"
 int BUILD_NUMBER = -1;
 
 pipeline {
@@ -41,6 +43,9 @@ pipeline {
                     VERSION = readMavenPom().getVersion()
                     BRANCH = env.GIT_BRANCH
                     BUILD_NUMBER = env.BUILD_NUMBER.toInteger()
+
+                    if(BRANCH == BRANCH_MASTER) QUALIFIER = "RELEASE"
+                    else if(BRANCH == BRANCH_DEVELOPMENT) QUALIFIER = "SNAPSHOT"
                 }
             }
         }
