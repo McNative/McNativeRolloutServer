@@ -29,16 +29,12 @@ public class ResourceRoute {
     private void setupRoutes(Javalin app){
         app.get("v1/:resourceId/versions/latest", context -> {
             UUID id = readRequestResourceId(context);
+            if(id == null) return;
             if (authenticate(context)) return;
-
-            if(id == null){
-                context.res.sendError(404);
-                return;
-            }
 
             Resource resource = resourceController.getResource(id);
             if(resource == null){
-                context.res.sendError(404);
+                context.res.sendError(404,"Resource not found");
                 return;
             }
 
@@ -48,7 +44,7 @@ public class ResourceRoute {
             ResourceProfile profile = resource.getProfile(qualifier);
 
             if(profile == null){
-                context.res.sendError(404);
+                context.res.sendError(404,"Rollout profile (qualifier) not found");
                 return;
             }
 
@@ -69,7 +65,7 @@ public class ResourceRoute {
             Resource resource = resourceController.getResource(id);
 
             if(resource == null){
-                context.res.sendError(404);
+                context.res.sendError(404,"resource not found");
                 return;
             }
 
@@ -78,7 +74,7 @@ public class ResourceRoute {
             int buildId = context.pathParam("buildId",Integer.class).get();
             InputStream stream = resource.getResourceData(buildId,edition);
             if(stream == null){
-                context.res.sendError(404);
+                context.res.sendError(404,"Resource not loaded");
                 return;
             }
             String serverName = context.header("serverName");
@@ -92,7 +88,7 @@ public class ResourceRoute {
         String serverSecret = context.header("serverSecret");
 
         if(serverId == null || serverSecret == null){
-            context.res.sendError(400);
+            context.res.sendError(400,"Missing server credentials");
             return true;
         }
 
@@ -107,7 +103,7 @@ public class ResourceRoute {
         try {
             return UUID.fromString(context.pathParam("resourceId"));
         }catch (Exception ignored){
-            context.res.sendError(400);
+            context.res.sendError(400,"Invalid resource id");
         }
         return null;
     }
