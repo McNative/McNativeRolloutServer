@@ -56,7 +56,6 @@ public class ResourceRoute {
             context.result(versionInfo.getName()+";" + versionInfo.getBuild() + ";" + versionInfo.getQualifier());
         });
 
-
         app.get("v1/:resourceId/versions/:buildId/download", context -> {
             UUID id = readRequestResourceId(context);
             if(id == null) return;
