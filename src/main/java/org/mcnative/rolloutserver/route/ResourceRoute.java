@@ -105,6 +105,4 @@ public class ResourceRoute {
         }
         return null;
     }
-
-
 }
