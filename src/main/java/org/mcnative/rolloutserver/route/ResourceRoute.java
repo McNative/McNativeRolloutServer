@@ -86,7 +86,6 @@ public class ResourceRoute {
     private boolean authenticate(Context context) throws IOException {
         String serverId = context.header("serverId");
         String serverSecret = context.header("serverSecret");
-
         if(serverId == null || serverSecret == null){
             context.res.sendError(400,"Missing server credentials");
             return true;
