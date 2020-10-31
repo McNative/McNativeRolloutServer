@@ -32,7 +32,7 @@ public class DeployHandler {
                     .replace("{serverId}", RolloutServerConfig.ID))).openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("User-Agent", "Pretronic Resource Loader");
+            connection.setRequestProperty("User-Agent", "McNative Rollout Server");
             connection.setConnectTimeout(3000);
             connection.setReadTimeout(3000);
             connection.setInstanceFollowRedirects(true);

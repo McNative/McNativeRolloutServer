@@ -1,7 +1,6 @@
 package org.mcnative.rolloutserver;
 
 import io.javalin.Javalin;
-import net.pretronic.libraries.concurrent.TaskFuture;
 import net.pretronic.libraries.concurrent.TaskScheduler;
 import net.pretronic.libraries.concurrent.simple.SimpleTaskScheduler;
 import net.pretronic.libraries.document.Document;
@@ -9,19 +8,19 @@ import net.pretronic.libraries.document.DocumentRegistry;
 import net.pretronic.libraries.document.type.DocumentFileType;
 import net.pretronic.libraries.resourceloader.VersionInfo;
 import net.pretronic.libraries.utility.interfaces.ObjectOwner;
-import net.pretronic.libraries.utility.io.FileUtil;
 import net.pretronic.libraries.utility.reflect.TypeReference;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.mcnative.rolloutserver.config.RolloutServerConfig;
+import org.mcnative.rolloutserver.license.LicenseController;
 import org.mcnative.rolloutserver.resource.Resource;
 import org.mcnative.rolloutserver.resource.ResourceController;
 import org.mcnative.rolloutserver.resource.ResourceProfile;
-import org.mcnative.rolloutserver.route.ResourceRoute;
+import org.mcnative.rolloutserver.route.v1.LicenseRoute;
+import org.mcnative.rolloutserver.route.v1.ResourceRoute;
 import org.mcnative.rolloutserver.utils.VersionInfoDocumentAdapter;
-import org.slf4j.simple.SimpleLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +38,7 @@ public class McNativeRolloutServer {
     private final TaskScheduler scheduler;
 
     private final ResourceController resourceController;
+    private final LicenseController licenseController;
     private final ServerAuthenticator authenticator;
 
     public McNativeRolloutServer(){
@@ -68,9 +68,11 @@ public class McNativeRolloutServer {
         this.scheduler = new SimpleTaskScheduler();
 
         this.resourceController = new ResourceController();
+        this.licenseController = new LicenseController();
         this.authenticator = new ServerAuthenticator();
 
         new ResourceRoute(this.app,this.resourceController,this.authenticator);
+        new LicenseRoute(this.app,this.licenseController,this.authenticator);
     }
 
     public void start(){
@@ -112,6 +114,7 @@ public class McNativeRolloutServer {
                     Document result = DeployHandler.checkoutDeployConfiguration();
                     if(result != null ) readDeploy(result);
                     this.resourceController.downloadDeployedResourceVersions();
+                    this.licenseController.cleanExpiredLicenses();
         }).addListener(task -> {
             if(task.isFailed()) Javalin.log.error("",task.getThrowable());
         });

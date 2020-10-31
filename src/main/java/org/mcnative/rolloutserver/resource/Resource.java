@@ -85,7 +85,7 @@ public class Resource {
             HttpURLConnection connection = (HttpURLConnection)(new URL(url)).openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Content-Type", "text/plain");
-            connection.setRequestProperty("User-Agent", "Pretronic Resource Loader");
+            connection.setRequestProperty("User-Agent", "McNative Rollout Server");
             connection.setConnectTimeout(3000);
             connection.setReadTimeout(3000);
             connection.setInstanceFollowRedirects(true);

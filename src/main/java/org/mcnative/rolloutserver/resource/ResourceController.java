@@ -2,18 +2,18 @@ package org.mcnative.rolloutserver.resource;
 
 import net.pretronic.libraries.utility.Iterators;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 public class ResourceController {
 
-    private List<Resource> resources;
+    private Collection<Resource> resources;
 
     public ResourceController() {
         this.resources = new ArrayList<>();
     }
 
-    public void setResources(List<Resource> resources) {
+    public void setResources(Collection<Resource> resources) {
         this.resources = resources;
     }
 

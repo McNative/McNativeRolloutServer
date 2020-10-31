@@ -1,4 +1,4 @@
-package org.mcnative.rolloutserver.route;
+package org.mcnative.rolloutserver.route.v1;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -30,7 +30,7 @@ public class ResourceRoute {
         app.get("v1/:resourceId/versions/latest", context -> {
             UUID id = readRequestResourceId(context);
             if(id == null) return;
-            if (authenticate(context)) return;
+            if (authenticator.authenticate(context)) return;
 
             Resource resource = resourceController.getResource(id);
             if(resource == null){
@@ -59,7 +59,7 @@ public class ResourceRoute {
         app.get("v1/:resourceId/versions/:buildId/download", context -> {
             UUID id = readRequestResourceId(context);
             if(id == null) return;
-            if (authenticate(context)) return;
+            if (authenticator.authenticate(context)) return;
 
             Resource resource = resourceController.getResource(id);
 
@@ -80,21 +80,6 @@ public class ResourceRoute {
             Javalin.log.info("Minecraft server ("+serverName+") from "+context.req.getRemoteAddr()+" downloaded "+resource.getName()+" ["+buildId+"]");
             context.result(stream);
         });
-    }
-
-    private boolean authenticate(Context context) throws IOException {
-        String serverId = context.header("serverId");
-        String serverSecret = context.header("serverSecret");
-        if(serverId == null || serverSecret == null){
-            context.res.sendError(400,"Missing server credentials");
-            return true;
-        }
-
-        if(!authenticator.isValid(serverId,serverSecret)){
-            context.res.sendError(401);
-            return true;
-        }
-        return false;
     }
 
     private UUID readRequestResourceId(@NotNull Context context) throws IOException {
