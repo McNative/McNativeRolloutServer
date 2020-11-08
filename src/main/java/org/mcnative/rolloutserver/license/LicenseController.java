@@ -112,5 +112,4 @@ public class LicenseController {
             throw new IORuntimeException(exception);
         }
     }
-
 }
