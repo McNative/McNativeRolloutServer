@@ -6,7 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>McNativeRolloutServer</artifactId>
-    <version>1.1.5.14-SNAPSHOT</version>
+    <version>1.0.8.11-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -63,7 +63,6 @@
         <dependency.pretronic.libraries.resourceloader>${dependency.pretronic.libraries}</dependency.pretronic.libraries.resourceloader>
         <dependency.pretronic.libraries.concurrent>${dependency.pretronic.libraries}</dependency.pretronic.libraries.concurrent>
         <dependency.pretronic.libraries>1.2.15.152-SNAPSHOT</dependency.pretronic.libraries>
-        <dependency.mcnative>1.6.45.401-SNAPSHOT</dependency.mcnative>
 
         <!-- Test dependencies -->
         <test.junit.jupiter>5.5.2</test.junit.jupiter>
@@ -115,13 +114,6 @@
             <groupId>net.pretronic.libraries</groupId>
             <artifactId>pretroniclibraries-concurrent</artifactId>
             <version>${dependency.pretronic.libraries.concurrent}</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mcnative</groupId>
-            <artifactId>mcnative-licensing</artifactId>
-            <version>${dependency.mcnative}</version>
             <scope>compile</scope>
         </dependency>
 
