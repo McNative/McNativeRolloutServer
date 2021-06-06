@@ -15,11 +15,12 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.mcnative.rolloutserver.config.RolloutServerConfig;
 import org.mcnative.rolloutserver.license.LicenseController;
-import org.mcnative.rolloutserver.resource.Resource;
+import org.mcnative.rolloutserver.profile.Profile;
+import org.mcnative.rolloutserver.profile.ProfileController;
 import org.mcnative.rolloutserver.resource.ResourceController;
-import org.mcnative.rolloutserver.resource.ResourceProfile;
-import org.mcnative.rolloutserver.route.v1.LicenseRoute;
-import org.mcnative.rolloutserver.route.v1.ResourceRoute;
+import org.mcnative.rolloutserver.route.v1.*;
+import org.mcnative.rolloutserver.template.Template;
+import org.mcnative.rolloutserver.template.TemplateController;
 import org.mcnative.rolloutserver.utils.VersionInfoDocumentAdapter;
 
 import java.io.File;
@@ -37,6 +38,8 @@ public class McNativeRolloutServer {
     private final Javalin app;
     private final TaskScheduler scheduler;
 
+    private final ProfileController profileController;
+    private final TemplateController templateController;
     private final ResourceController resourceController;
     private final LicenseController licenseController;
     private final ServerAuthenticator authenticator;
@@ -67,12 +70,17 @@ public class McNativeRolloutServer {
 
         this.scheduler = new SimpleTaskScheduler();
 
-        this.resourceController = new ResourceController();
+        this.profileController = new ProfileController();
+        this.templateController = new TemplateController();
+        this.resourceController = new ResourceController(profileController);
         this.licenseController = new LicenseController();
         this.authenticator = new ServerAuthenticator();
 
+        new TemplateRoute(this.app,this.templateController,this.authenticator);
+        new ProfileRoute(this.app,this.profileController,this.authenticator);
         new ResourceRoute(this.app,this.resourceController,this.authenticator);
         new LicenseRoute(this.app,this.licenseController,this.authenticator);
+        new PingRoute(this.app);
     }
 
     public void start(){
@@ -86,7 +94,7 @@ public class McNativeRolloutServer {
         }
 
         Document deploy = DeployHandler.loadDeployConfiguration();
-        readDeploy(deploy);
+        if(deploy != null) readDeploy(deploy);
 
         startDeployListener();
 
@@ -109,34 +117,26 @@ public class McNativeRolloutServer {
     private void startDeployListener(){
         scheduler.createTask(ObjectOwner.SYSTEM)
                 .delay(5, TimeUnit.SECONDS)
-                .interval(5,TimeUnit.MINUTES)
+                .interval(10,TimeUnit.MINUTES)
                 .execute(() -> {
-                    Document result = DeployHandler.checkoutDeployConfiguration();
-                    if(result != null ) readDeploy(result);
-                    this.resourceController.downloadDeployedResourceVersions();
+                    Document deploy = DeployHandler.checkoutDeployConfiguration();
+                    if(deploy != null) readDeploy(deploy);
+                    this.resourceController.downloadDeployedVersions();
                     this.licenseController.cleanExpiredLicenses();
+                    this.resourceController.lookupVersions();
         }).addListener(task -> {
             if(task.isFailed()) Javalin.log.error("",task.getThrowable());
         });
     }
 
     private void readDeploy(Document deploy){
-        List<Resource> resources = deploy.getObject("configuration.resources",new TypeReference<List<Resource>>(){}.getType());
+        List<Profile> profiles = deploy.getObject("profiles",new TypeReference<List<Profile>>(){}.getType());
+        List<Template> templates = deploy.getObject("templates",new TypeReference<List<Template>>(){}.getType());
         List<ServerAuthenticator.ServerCredential> credentials = deploy.getObject("credentials",new TypeReference<List<ServerAuthenticator.ServerCredential>>(){}.getType());
 
-        resourceController.setResources(resources != null ? resources : new ArrayList<>());
+        templateController.setTemplates(templates != null ? templates : new ArrayList<>());
+        profileController.setProfiles(profiles != null ? profiles : new ArrayList<>());
         authenticator.setCredentials(credentials != null ? credentials : new ArrayList<>());
-
-        if(resources != null){
-            Javalin.log.info("-------------------------");
-            for (Resource resource : resources) {
-                Javalin.log.info(resource.getName()+" ["+resource.getId()+"] ");
-                for (ResourceProfile profile : resource.getProfiles()) {
-                    Javalin.log.info(" -> "+profile.getName()+" "+profile.getInstallVersion().getName());
-                }
-            }
-            Javalin.log.info("-------------------------");
-        }
     }
 
     private static SslContextFactory getSslContextFactory() {

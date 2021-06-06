@@ -2,7 +2,7 @@ package org.mcnative.rolloutserver.resource;
 
 import io.javalin.Javalin;
 import net.pretronic.libraries.resourceloader.VersionInfo;
-import net.pretronic.libraries.utility.Iterators;
+import net.pretronic.libraries.utility.io.FileUtil;
 import org.mcnative.rolloutserver.config.RolloutServerConfig;
 
 import java.io.File;
@@ -11,76 +11,60 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
-import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Resource {
 
+    private static final String LATEST_URL = "https://mirror.mcnative.org/v1/{id}/versions/latest?plain=true";
     private static final String DOWNLOAD_URL = "https://mirror.mcnative.org/v1/{id}/versions/{build}/download";
 
-    private final String name;
     private final UUID id;
-    private final Collection<String> editions;
-    private final Collection<ResourceProfile> profiles;
+    private Map<String,String> latestVersionInfos;
 
-    public Resource(String name, UUID id, Collection<String> editions, Collection<ResourceProfile> profiles) {
-        this.name = name;
+    public Resource(UUID id) {
         this.id = id;
-        this.editions = editions;
-        this.profiles = profiles;
-    }
-
-    public String getName() {
-        return name;
+        latestVersionInfos = new ConcurrentHashMap<>();
     }
 
     public UUID getId() {
         return id;
     }
 
-    public Collection<String> getEditions() {
-        return editions;
+    public String getLatestVersionInfo(String qualifier) {
+        if(!latestVersionInfos.containsKey(qualifier) && !lookupLatestVersion(qualifier)) return "Unknown";
+        return latestVersionInfos.get(qualifier);
     }
 
-    public Collection<ResourceProfile> getProfiles() {
-        return profiles;
+    public VersionInfo getLatestVersionInfoAsInfo(String qualifier) {
+        String info = getLatestVersionInfo(qualifier);
+        return VersionInfo.parse(info.split(";")[0]);
     }
 
-    public ResourceProfile getProfile(String name){
-        return Iterators.findOne(this.profiles, profile -> profile.getName().equalsIgnoreCase(name));
+    private File buildLocation(VersionInfo info){
+        return buildLocation(info.getBuild());
     }
 
-    public boolean isVersionAvailable(VersionInfo info){
-        return isVersionAvailable(info,null);
+    private File buildLocation(int build){
+        return new File(RolloutServerConfig.RESOURCE_FOLDER,id+"/resource-"+build+".jar");
     }
 
-    public boolean isVersionAvailable(VersionInfo info,String edition){
-        return buildLocation(info,edition).exists();
-    }
-
-    private File buildLocation(VersionInfo info,String edition){
-        return buildLocation(info.getBuild(),edition);
-    }
-
-    private File buildLocation(int build,String edition){
-        if(edition == null) edition = "default";
-        return new File(RolloutServerConfig.RESOURCE_FOLDER,id+"/resource-"+build+"-"+edition+".jar");
+    private File buildLatestLocation(String qualifier){
+        return new File(RolloutServerConfig.RESOURCE_FOLDER,id+"/latest-"+qualifier+".txt");
     }
 
     public boolean download(VersionInfo info) {
-        return download(info,null);
+        return download(info.getBuild());
     }
 
-    public boolean download(VersionInfo info,String edition) {
-        return download(info.getBuild(),edition);
-    }
-
-    public boolean download(int build,String edition) {
+    public boolean download(int build) {
+        File file = buildLocation(build);
+        if(file.exists()) return true;
         try {
-            Javalin.log.info("Downloading "+name+" (Build: "+build+")");
+            Javalin.log.info("Downloading "+id+" (Build: "+build+")");
 
             String url = DOWNLOAD_URL.replace("{id}",id.toString()).replace("{build}",String.valueOf(build));
-            if(edition != null) url +="?edition="+edition;
 
             HttpURLConnection connection = (HttpURLConnection)(new URL(url)).openConnection();
             connection.setRequestMethod("GET");
@@ -90,19 +74,18 @@ public class Resource {
             connection.setReadTimeout(3000);
             connection.setInstanceFollowRedirects(true);
 
-            connection.setRequestProperty("rolloutId",RolloutServerConfig.ID);
-            connection.setRequestProperty("rolloutSecret",RolloutServerConfig.SECRET);
+            connection.setRequestProperty("rolloutServerId",RolloutServerConfig.ID);
+            connection.setRequestProperty("rolloutServerSecret",RolloutServerConfig.SECRET);
 
             connection.connect();
             if (connection.getResponseCode() != 200) {
-                Javalin.log.error("Downloading "+name+" (Build: "+build+", Edition: "+edition+") failed");
+                Javalin.log.error("Downloading "+id+" (Build: "+build+") failed");
                 Javalin.log.error("Error: "+connection.getResponseCode()+" - "+connection.getResponseMessage());
                 return false;
             } else {
-                File file = buildLocation(build,edition);
                 file.getParentFile().mkdirs();
                 Files.copy(connection.getInputStream(), file.toPath());
-                Javalin.log.info("Downloaded "+name+" (Build: "+build+", Edition: "+edition+") successfully");
+                Javalin.log.info("Downloaded "+id+" (Build: "+build+") successfully");
                 return true;
             }
         }catch (Exception exception){
@@ -111,23 +94,56 @@ public class Resource {
         return false;
     }
 
-    public void downloadInstallVersions(){
-        for (ResourceProfile profile : getProfiles()) {
-            VersionInfo installVersion = profile.getInstallVersion();
-
-            for (String edition : getEditions()) {
-                if(!isVersionAvailable(installVersion,edition)){
-                    download(installVersion,edition);
-                }
-            }
+    public boolean lookupLatestVersion(String qualifier) {
+        File file = buildLatestLocation(qualifier);
+        if(file.exists()){
+            latestVersionInfos.put(qualifier,FileUtil.readContent(FileUtil.newFileInputStream(file)));
+            return true;
         }
+        try {
+            Javalin.log.info("Looking up latest version for "+id);
+
+            String url = LATEST_URL.replace("{id}",id.toString());
+
+            HttpURLConnection connection = (HttpURLConnection)(new URL(url)).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Content-Type", "text/plain");
+            connection.setRequestProperty("User-Agent", "McNative Rollout Server");
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(3000);
+            connection.setInstanceFollowRedirects(true);
+
+            connection.setRequestProperty("rolloutServerId",RolloutServerConfig.ID);
+            connection.setRequestProperty("rolloutServerSecret",RolloutServerConfig.SECRET);
+
+            connection.connect();
+            if (connection.getResponseCode() != 200) {
+                Javalin.log.error("Could not lookup latest version for "+id+": ");
+                Javalin.log.error("Error: "+connection.getResponseCode()+" - "+connection.getResponseMessage());
+                return false;
+            } else {
+                file.getParentFile().mkdirs();
+                Files.copy(connection.getInputStream(), file.toPath());
+                String latestVersionInfo = FileUtil.readContent(FileUtil.newFileInputStream(file));
+                latestVersionInfos.put(qualifier,latestVersionInfo);
+                Javalin.log.info("Found latest version for "+id+": "+latestVersionInfo);
+                return true;
+            }
+        }catch (Exception exception){
+            exception.printStackTrace();
+        }
+        return false;
     }
 
-    public InputStream getResourceData(int buildNumber,String edition) throws IOException {
-        File file = buildLocation(buildNumber,edition);
+    public void refreshVersions(){
+        for (String qualifier : latestVersionInfos.keySet()) lookupLatestVersion(qualifier);
+    }
+
+    public InputStream getResourceData(int buildNumber) throws IOException {
+        File file = buildLocation(buildNumber);
 
         if(!file.exists()){
-            if(!download(buildNumber, edition)) return null;
+            if(!download(buildNumber)) return null;
         }
 
         return Files.newInputStream(file.toPath());

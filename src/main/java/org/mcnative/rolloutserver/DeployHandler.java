@@ -11,7 +11,7 @@ import java.net.URL;
 
 public class DeployHandler {
 
-    private static final String CONFIGURATION_CHECKOUT_URL = "https://api.mcnative.org/rollout/{serverId}/checkout";
+    private static final String CONFIGURATION_CHECKOUT_URL = "https://mirror.mcnative.org/v1/rollout/checkout";
 
     private static final File DEPLOY_CONFIGURATION_LOCATION = new File("deploy.dat");
 
@@ -28,8 +28,7 @@ public class DeployHandler {
         Javalin.log.info("Checking for new deploy configuration");
 
         try{
-            HttpURLConnection connection = (HttpURLConnection)(new URL(CONFIGURATION_CHECKOUT_URL
-                    .replace("{serverId}", RolloutServerConfig.ID))).openConnection();
+            HttpURLConnection connection = (HttpURLConnection)(new URL(CONFIGURATION_CHECKOUT_URL)).openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("User-Agent", "McNative Rollout Server");
@@ -37,7 +36,8 @@ public class DeployHandler {
             connection.setReadTimeout(3000);
             connection.setInstanceFollowRedirects(true);
 
-            connection.setRequestProperty("secret",RolloutServerConfig.SECRET);
+            connection.setRequestProperty("rolloutServerId",RolloutServerConfig.ID);
+            connection.setRequestProperty("rolloutServerSecret",RolloutServerConfig.SECRET);
             connection.setRequestProperty("rolloutServerEndpoint", "https://"+RolloutServerConfig.HOST+":"+RolloutServerConfig.PORT);
 
             connection.connect();

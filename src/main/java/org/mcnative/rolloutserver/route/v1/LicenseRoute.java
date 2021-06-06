@@ -1,22 +1,10 @@
 package org.mcnative.rolloutserver.route.v1;
 
 import io.javalin.Javalin;
-import io.javalin.http.Context;
-import net.pretronic.libraries.resourceloader.VersionInfo;
-import org.jetbrains.annotations.NotNull;
 import org.mcnative.licensing.License;
 import org.mcnative.licensing.exceptions.CloudNotCheckoutLicenseException;
 import org.mcnative.rolloutserver.ServerAuthenticator;
 import org.mcnative.rolloutserver.license.LicenseController;
-import org.mcnative.rolloutserver.resource.Resource;
-import org.mcnative.rolloutserver.resource.ResourceController;
-import org.mcnative.rolloutserver.resource.ResourceProfile;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 public class LicenseRoute {
 

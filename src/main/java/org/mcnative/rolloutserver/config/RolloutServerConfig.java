@@ -5,6 +5,8 @@ import net.pretronic.libraries.document.annotations.DocumentKey;
 import net.pretronic.libraries.document.annotations.OnDocumentConfigurationLoad;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class RolloutServerConfig {
 
@@ -24,7 +26,7 @@ public class RolloutServerConfig {
     @DocumentIgnored
     public static File LICENSE_FOLDER = new File("licenses/");
 
-    public static String HOST = "0.0.0.0";
+    public static String HOST = getHost();
 
     public static int PORT = 8090;
 
@@ -34,5 +36,13 @@ public class RolloutServerConfig {
         if(!RESOURCE_FOLDER.exists()) RESOURCE_FOLDER.mkdirs();
         LICENSE_FOLDER = new File(LICENSE_FOLDER_NAME);
         if(!LICENSE_FOLDER.exists()) LICENSE_FOLDER.mkdirs();
+    }
+
+    private static String getHost(){
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            return "localhost";
+        }
     }
 }

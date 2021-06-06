@@ -20,7 +20,7 @@ import java.util.Scanner;
 public class LicenseController {
 
     private static final String CHECKOUT_URL = "https://mirror.mcnative.org/v1/licenses/{resourceId}/checkout";
-    private Collection<License> licenses;
+    private final Collection<License> licenses;
 
     public LicenseController() {
         this.licenses = new ArrayList<>();

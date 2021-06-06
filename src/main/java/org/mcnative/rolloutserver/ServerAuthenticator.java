@@ -30,15 +30,15 @@ public class ServerAuthenticator {
     }
 
     public boolean authenticate(Context context) throws IOException {
-        String serverId = context.header("serverId");
-        String serverSecret = context.header("serverSecret");
+        String networkId = context.header("networkId");
+        String networkSecret = context.header("networkSecret");
 
-        if(serverId == null || serverSecret == null){
+        if(networkId == null || networkSecret == null){
             context.res.sendError(400,"Missing server credentials");
             return true;
         }
 
-        if(!isValid(serverId,serverSecret)){
+        if(!isValid(networkId,networkSecret)){
             context.res.sendError(401);
             return true;
         }
