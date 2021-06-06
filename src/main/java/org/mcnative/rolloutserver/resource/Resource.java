@@ -33,7 +33,7 @@ public class Resource {
     }
 
     public String getLatestVersionInfo(String qualifier) {
-        if(!latestVersionInfos.containsKey(qualifier) && !lookupLatestVersion(qualifier)) return "Unknown";
+        if(!latestVersionInfos.containsKey(qualifier) && !loadLatestVersion(qualifier)) return "Unknown";
         return latestVersionInfos.get(qualifier);
     }
 
@@ -94,12 +94,16 @@ public class Resource {
         return false;
     }
 
-    public boolean lookupLatestVersion(String qualifier) {
+    public boolean loadLatestVersion(String qualifier) {
         File file = buildLatestLocation(qualifier);
         if(file.exists()){
             latestVersionInfos.put(qualifier,FileUtil.readContent(FileUtil.newFileInputStream(file)));
             return true;
         }
+        return lookupLatestVersion(qualifier);
+    }
+
+    public boolean lookupLatestVersion(String qualifier) {
         try {
             Javalin.log.info("Looking up latest version for "+id);
 
@@ -122,6 +126,8 @@ public class Resource {
                 Javalin.log.error("Error: "+connection.getResponseCode()+" - "+connection.getResponseMessage());
                 return false;
             } else {
+                File file = buildLatestLocation(qualifier);
+                if(file.exists()) file.delete();
                 file.getParentFile().mkdirs();
                 Files.copy(connection.getInputStream(), file.toPath());
                 String latestVersionInfo = FileUtil.readContent(FileUtil.newFileInputStream(file));
