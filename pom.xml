@@ -6,7 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>McNativeRolloutServer</artifactId>
-    <version>1.0.8.18</version>
+    <version>1.0.8.20</version>
     <build>
         <plugins>
             <plugin>
